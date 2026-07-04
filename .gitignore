@@ -1,0 +1,17 @@
+# 用户运行时数据(含 token/词库,勿提交)
+accounts.json
+profiles/
+*.csv
+*.bak
+
+# 本地配置覆盖(用户私有,不进 git)
+config.local.json
+
+# 依赖
+node_modules/
+
+# 打包产物
+dist/
+
+# 备份与日志
+*.log

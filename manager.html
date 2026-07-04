@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Typeless 多账号管理</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --accent:#346BFF; --accent-soft:#eaf0ff; --text:#1a2233; --sub:#6b7280; --line:#eceef1; --ok:#22c55e; --warn:#f59e0b; --err:#ef4444; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:24px 20px 60px; }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+  header h1 { font-size:20px; font-weight:650; margin:0; }
+  header .sub { color:var(--sub); font-size:13px; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 18px; }
+  .btn { background:var(--card); border:1px solid var(--line); color:var(--text); padding:8px 14px; border-radius:10px; font-size:13px; cursor:pointer; transition:.15s; display:inline-flex; align-items:center; gap:6px; }
+  .btn:hover { border-color:var(--accent); color:var(--accent); }
+  .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.primary:hover { background:#2a5fe8; color:#fff; }
+  .btn.small { padding:5px 10px; font-size:12px; border-radius:8px; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .banner { background:var(--accent-soft); border:1px solid #d4e0ff; color:#3b5bdb; padding:10px 14px; border-radius:12px; font-size:13px; margin-bottom:16px; display:none; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px; }
+  .card { background:var(--card); border-radius:16px; padding:16px 16px 14px; border:1px solid var(--line); box-shadow:0 1px 2px rgba(16,24,40,.03); cursor:pointer; transition:.15s; position:relative; }
+  .card:hover { box-shadow:0 6px 20px rgba(16,24,40,.07); transform:translateY(-1px); }
+  .card .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .nick { font-weight:650; font-size:15px; }
+  .email { color:var(--sub); font-size:12px; margin-top:2px; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:20px; background:#f0f1f3; color:var(--sub); }
+  .badge.free { background:#fff3e0; color:#b26a00; }
+  .badge.pro { background:#e7f7ee; color:#1a8243; }
+  .badge.invalid { background:#fdecec; color:#c01f1f; }
+  .row { display:flex; justify-content:space-between; font-size:12px; color:var(--sub); margin-top:6px; }
+  .row b { color:var(--text); font-weight:600; }
+  .bar { height:8px; background:#f0f1f3; border-radius:6px; overflow:hidden; margin:6px 0 2px; }
+  .bar > i { display:block; height:100%; background:var(--accent); border-radius:6px; }
+  .bar.warn > i { background:var(--warn); }
+  .bar.err > i { background:var(--err); }
+  .mini { display:flex; gap:10px; margin-top:10px; }
+  .mini .m { flex:1; background:#f8f9fb; border-radius:10px; padding:8px 10px; }
+  .mini .m .k { font-size:11px; color:var(--sub); }
+  .mini .m .v { font-size:14px; font-weight:650; margin-top:2px; }
+  .tag-active { position:absolute; top:14px; right:-30px; background:var(--accent); color:#fff; font-size:10px; padding:3px 34px; transform:rotate(45deg); display:none; }
+  .card.active .tag-active { display:block; }
+  .card.active { box-shadow:0 0 0 2px var(--accent) inset; }
+  .empty { text-align:center; color:var(--sub); padding:50px 0; }
+  /* 弹窗 */
+  .mask { position:fixed; inset:0; background:rgba(16,24,40,.35); display:none; align-items:center; justify-content:center; z-index:50; }
+  .mask.on { display:flex; }
+  .modal { background:#fff; border-radius:18px; width:min(720px,94vw); max-height:88vh; display:flex; flex-direction:column; overflow:hidden; }
+  .modal .hd { padding:16px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
+  .modal .hd h3 { margin:0; font-size:16px; }
+  .modal .bd { padding:16px 18px; overflow:auto; }
+  .tabs { display:flex; gap:6px; margin-bottom:14px; }
+  .tab { padding:6px 12px; border-radius:8px; font-size:13px; cursor:pointer; color:var(--sub); }
+  .tab.on { background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  .wordlist { display:flex; flex-direction:column; gap:6px; }
+  .word { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#f8f9fb; border-radius:9px; font-size:13px; }
+  .word .t { font-weight:500; }
+  .word .meta { font-size:11px; color:var(--sub); display:flex; gap:8px; align-items:center; }
+  .word .del { color:var(--err); cursor:pointer; opacity:.6; }
+  .word .del:hover { opacity:1; }
+  .pill { font-size:10px; padding:1px 6px; border-radius:6px; background:#eef0f3; }
+  .pill.auto { background:#fff3e0; color:#b26a00; }
+  input.fld { border:1px solid var(--line); border-radius:9px; padding:8px 11px; font-size:13px; width:100%; outline:none; }
+  input.fld:focus { border-color:var(--accent); }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12px; color:var(--sub); margin-bottom:5px; }
+  .statbox { background:#f8f9fb; border-radius:12px; padding:14px; }
+  .statbox .line { display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px dashed var(--line); }
+  .statbox .line:last-child { border:none; }
+  .ring { width:88px; height:88px; border-radius:50%; background:conic-gradient(var(--accent) calc(var(--p)*1%), #eef0f3 0); display:flex; align-items:center; justify-content:center; margin:0 auto 8px; }
+  .ring span { background:#fff; width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+  .master-edit textarea { width:100%; min-height:180px; border:1px solid var(--line); border-radius:10px; padding:10px; font-size:13px; font-family:inherit; resize:vertical; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a2233; color:#fff; padding:10px 18px; border-radius:10px; font-size:13px; z-index:80; opacity:0; transition:.2s; pointer-events:none; }
+  .toast.on { opacity:1; }
+  a.link { color:var(--accent); cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Typeless 多账号管理</h1>
+      <div class="sub">周额度 8,000 字/号 · 词库跨账号同步 · <a class="link" id="curLink">检测当前登录账号</a></div>
+    </div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="toolbar">
+    <button class="btn primary" onclick="launch()">⏻ 启动 Typeless</button>
+    <button class="btn" onclick="addAccount()">＋ 添加当前账号</button>
+    <button class="btn" onclick="loadAccounts()">↻ 全部刷新</button>
+    <button class="btn" onclick="syncAll()">⇄ 全部同步</button>
+    <button class="btn" onclick="openMaster()">✎ 主词库编辑</button>
+    <button class="btn" onclick="resetDevice()" style="color:#c01f1f;border-color:#f5c2c2">⊘ 解除设备限制</button>
+    <button class="btn" onclick="patchPaywall()" style="color:#c01f1f;border-color:#f5c2c2">⊘ 解除弹窗提示</button>
+  </div>
+
+  <div id="grid" class="grid"></div>
+</div>
+
+<!-- 账号详情 -->
+<div class="mask" id="detailMask" onclick="if(event.target===this)closeModal('detailMask')">
+  <div class="modal">
+    <div class="hd"><h3 id="dTitle">账号详情</h3><button class="btn small" onclick="closeModal('detailMask')">✕</button></div>
+    <div class="bd">
+      <div class="tabs">
+        <div class="tab on" onclick="selTab(this,'dict')">词库</div>
+        <div class="tab" onclick="selTab(this,'usage')">用量</div>
+        <div class="tab" onclick="selTab(this,'personal')">个性化</div>
+      </div>
+      <div id="tab-dict">
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input class="fld" id="wordInput" placeholder="输入新词,回车添加" onkeydown="if(event.key==='Enter')addWord()">
+          <button class="btn small primary" onclick="addWord()">加词</button>
+        </div>
+        <input class="fld" id="dictSearch" placeholder="筛选词条…" oninput="renderDict()" style="margin-bottom:10px;">
+        <div class="wordlist" id="wordList"></div>
+      </div>
+      <div id="tab-usage" style="display:none"></div>
+      <div id="tab-personal" style="display:none"></div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn small primary" onclick="syncOne()">同步本账号</button>
+        <button class="btn small" onclick="importMaster()">从主词库导入</button>
+        <button class="btn small" onclick="copyFrom()">从其他号复制</button>
+        <button class="btn small" onclick="saveSnap()">更新快照</button>
+        <button class="btn small" onclick="rmAccount()">移除账号</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 主词库编辑 -->
+<div class="mask" id="masterMask" onclick="if(event.target===this)closeModal('masterMask')">
+  <div class="modal">
+    <div class="hd"><h3>主词库（各账号并集）</h3><button class="btn small" onclick="closeModal('masterMask')">✕</button></div>
+    <div class="bd">
+      <div class="sub" style="color:var(--sub);font-size:12px;margin-bottom:8px;">一行一个词。保存后会作为所有账号同步的基准（同步时把缺失的词导入各账号，并吸收各账号已有词）。</div>
+      <textarea id="masterArea"></textarea>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        <button class="btn small primary" onclick="saveMaster()">保存</button>
+        <span id="masterCnt" style="font-size:12px;color:var(--sub);"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 添加账号 -->
+<div class="mask" id="addMask" onclick="if(event.target===this)closeModal('addMask')">
+  <div class="modal" style="width:min(440px,94vw)">
+    <div class="hd"><h3>添加账号</h3><button class="btn small" onclick="closeModal('addMask')">✕</button></div>
+    <div class="bd">
+      <div id="addStep1">
+        <div style="font-size:13px;color:var(--sub);line-height:1.7;margin-bottom:12px;">先在 Typeless 里登录要添加的账号，然后点下方按钮。工具会自动抓取当前登录账号的凭证（会重载一次主窗口）。</div>
+        <button class="btn primary" onclick="doCapture()" id="capBtn">抓取当前账号</button>
+      </div>
+      <div id="addStep2" style="display:none">
+        <div class="field"><label>昵称</label><input class="fld" id="addNick"></div>
+        <div class="field"><label>邮箱</label><input class="fld" id="addEmail" readonly></div>
+        <div class="field"><label>套餐 / user_id</label><input class="fld" id="addMeta" readonly></div>
+        <button class="btn primary" onclick="saveAccount()">保存</button>
+        <span id="addExist" style="font-size:12px;color:var(--warn);margin-left:10px;"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const api = (p, opt={}) => fetch(p, { headers:{'Content-Type':'application/json'}, ...opt }).then(r=>r.json());
+let ACCOUNTS = [], CUR_ID = null, curDetail = null, curWords = [];
+
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1800); }
+function openModal(id){ document.getElementById(id).classList.add('on'); }
+function closeModal(id){ document.getElementById(id).classList.remove('on'); }
+
+async function launch(){ const r=await api('/api/launch',{method:'POST'}); toast(r.msg||'已启动'); }
+async function loadAccounts(){
+  const g=document.getElementById('grid'); g.innerHTML='<div class="empty">加载中…</div>';
+  const r=await api('/api/accounts');
+  if(r.status!=='OK'){ g.innerHTML='<div class="empty">'+r.msg+'</div>'; return; }
+  ACCOUNTS=r.data||[];
+  render();
+}
+function pct(v,l){ return l? Math.min(100, Math.round(v/l*100)):0; }
+function render(){
+  const g=document.getElementById('grid');
+  if(!ACCOUNTS.length){ g.innerHTML='<div class="empty">还没有账号。点「添加当前账号」开始（先在 Typeless 登录该号）。</div>'; return; }
+  g.innerHTML=ACCOUNTS.map(a=>{
+    const live=a.live||{};
+    const u=live.usage||{};
+    const used=u.week_word_usage_value||0, lim=u.week_word_usage_limit||8000;
+    const p=pct(used,lim); const pcls=p>80?'err':p>60?'warn':'';
+    const valid=live.token_valid!==false;
+    return `<div class="card ${a.user_id===CUR_ID?'active':''}" onclick="openDetail('${a.user_id}')">
+      <div class="tag-active">当前</div>
+      <div class="top">
+        <div><div class="nick">${esc(a.nickname)}</div><div class="email">${esc(a.email||'')}</div></div>
+        <span class="badge ${a.role||''} ${valid?'':'invalid'}">${valid?(a.role||'未知'):'token失效'}</span>
+      </div>
+      <div class="row"><span>本周额度</span><b>${used.toLocaleString()} / ${lim.toLocaleString()}</b></div>
+      <div class="bar ${pcls}"><i style="width:${p}%"></i></div>
+      <div class="row"><span>剩余字数</span><b>${(lim-used).toLocaleString()}</b></div>
+      <div class="mini">
+        <div class="m"><div class="k">词库词条</div><div class="v">${live.dict_count??'-'}</div></div>
+        <div class="m"><div class="k">个性化</div><div class="v">${Math.round((live.personal?.total_learning_ratio||0)*100)}%</div></div>
+        <div class="m"><div class="k">总字数</div><div class="v">${(u.total_words||0).toLocaleString()}</div></div>
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;color:var(--sub)">${a.has_snapshot?'快照已存':'未存快照'}</span>
+        <button class="btn small" onclick="event.stopPropagation();switchTo('${a.user_id}')" ${a.has_snapshot?'':'disabled'}>切换到此号</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function esc(s){ return (s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+
+async function openDetail(id){
+  const a=ACCOUNTS.find(x=>x.user_id===id); if(!a) return;
+  curDetail=a;
+  document.getElementById('dTitle').textContent=a.nickname+' · '+(a.email||'');
+  openModal('detailMask');
+  selTab(document.querySelector('.tab'),'dict');
+  const r=await api('/api/accounts/'+encodeURIComponent(id)+'/dictionary');
+  curWords = r.data?.words||[];
+  document.getElementById('dictSearch').value=''; renderDict();
+  renderUsage(a); renderPersonal(a);
+}
+function selTab(el,tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on')); el.classList.add('on');
+  ['dict','usage','personal'].forEach(t=>document.getElementById('tab-'+t).style.display = t===tab?'block':'none');
+}
+function renderDict(){
+  const q=(document.getElementById('dictSearch').value||'').trim().toLowerCase();
+  const ws=curWords.filter(w=>!q||(w.term||'').toLowerCase().includes(q));
+  document.getElementById('wordList').innerHTML = ws.length? ws.map(w=>`<div class="word">
+    <span class="t">${esc(w.term)}</span>
+    <span class="meta"><span class="pill ${w.auto?'auto':''}">${w.auto?'自动':'手动'}</span>${w.lang||''}<span class="del" onclick="delWord('${esc(w.term)}')">删除</span></span>
+  </div>`).join('') : '<div class="empty" style="padding:20px">无词条</div>';
+}
+function renderUsage(a){
+  const u=a.live?.usage||{}; const used=u.week_word_usage_value||0,lim=u.week_word_usage_limit||8000;
+  document.getElementById('tab-usage').innerHTML=`<div class="statbox">
+    <div class="line"><span>本周已用</span><b>${used.toLocaleString()} / ${lim.toLocaleString()} 字</b></div>
+    <div class="line"><span>剩余</span><b>${(lim-used).toLocaleString()} 字</b></div>
+    <div class="line"><span>总听写字数</span><b>${(u.total_words||0).toLocaleString()}</b></div>
+    <div class="line"><span>录音总时长</span><b>${Math.round(u.total_audio_seconds||0)} 秒</b></div>
+    <div class="line"><span>平均语速</span><b>${u.avg_wpm||0} wpm</b></div>
+    <div class="line"><span>已节省</span><b>${u.mins_saved||0} 分钟</b></div>
+  </div>`;
+}
+function renderPersonal(a){
+  const p=a.live?.personal||{}; const ratio=p.total_learning_ratio||0;
+  document.getElementById('tab-personal').innerHTML=`<div style="text-align:center">
+    <div class="ring" style="--p:${Math.round(ratio*100)}"><span>${Math.round(ratio*100)}%</span></div>
+    <div style="color:var(--sub);font-size:12px">个性化学习进度</div>
+    <div style="font-size:13px;margin-top:6px">${p.enabled?'已启用':'未启用'} · ${(p.category_stats||[]).length} 个学习类别</div>
+  </div>`;
+}
+async function addWord(){
+  const t=document.getElementById('wordInput').value.trim(); if(!t||!curDetail) return;
+  const r=await api('/api/accounts/'+encodeURIComponent(curDetail.user_id)+'/word',{method:'POST',body:JSON.stringify({term:t})});
+  if(r.status==='OK'){ toast('已添加'); document.getElementById('wordInput').value=''; const d=await api('/api/accounts/'+encodeURIComponent(curDetail.user_id)+'/dictionary'); curWords=d.data?.words||[]; renderDict(); } else toast('失败');
+}
+async function delWord(term){
+  if(!curDetail) return; if(!confirm('删除「'+term+'」?')) return;
+  const r=await api('/api/accounts/'+encodeURIComponent(curDetail.user_id)+'/word?term='+encodeURIComponent(term),{method:'DELETE'});
+  if(r.status==='OK'){ toast('已删除'); curWords=curWords.filter(w=>w.term!==term); renderDict(); } else toast('失败');
+}
+async function syncOne(){
+  if(!curDetail) return; toast('同步中…');
+  const r=await api('/api/accounts/'+encodeURIComponent(curDetail.user_id)+'/sync',{method:'POST'});
+  if(r.status==='OK') toast(`同步完成:导出 ${r.data.exported} / 导入 ${r.data.imported} / 主库 ${r.data.master_count}`);
+  else toast('失败: '+(r.msg||''));
+  await loadAccounts();
+}
+async function syncAll(){
+  toast('全部同步中…');
+  const r=await api('/api/sync-all',{method:'POST'});
+  if(r.status==='OK'){ const d=r.data||[]; toast(`完成 ${d.length} 个账号`); await loadAccounts(); }
+}
+async function switchTo(id){
+  const a=ACCOUNTS.find(x=>x.user_id===id); if(!a) return;
+  if(!confirm('切换到「'+a.nickname+'」?将关闭并重启 Typeless。')) return;
+  toast('切换中…');
+  const r=await api('/api/accounts/'+encodeURIComponent(id)+'/switch',{method:'POST'});
+  toast(r.msg||'已切换');
+  setTimeout(()=>{ loadAccounts(); detectCurrent(); }, 6000);
+}
+async function resetDevice(){
+  if(!confirm('解除设备限制?\n\n将重置设备 ID(删凭据+device.cache+user-data+清登录态),Typeless 重启到登录页,即可注册新账号。\n当前账号会被登出(若已存快照可随时切回)。')) return;
+  toast('重置中…');
+  const r=await api('/api/reset-device',{method:'POST'});
+  toast(r.msg||'已重置');
+  setTimeout(()=>{ loadAccounts(); detectCurrent(); }, 7000);
+}
+// 解除升级/会员弹窗(等长字节补丁 app.asar + Typeless.exe,同步两层 asar 完整性哈希)
+async function patchPaywall(){
+  // 先查状态:已打过就提示,不再动文件
+  let st={};
+  try{ st=await api('/api/paywall-status'); }catch(e){}
+  if(st.data && st.data.patched){
+    toast('已是无弹窗补丁版,无需重复操作');
+    return;
+  }
+  if(!confirm('解除升级弹窗?\n\n将修改 app.asar + Typeless.exe(等长字节替换 gn(x)→(0,x),并同步 per-file SHA256 与 exe 内嵌整头 SHA256 两层完整性)。\n首次会自动备份 app.asar.bak / Typeless.exe.bak。\nTypeless 会先关闭,打完自动重启。\n注意:Typeless 自动更新会还原补丁,届时需重打。')) return;
+  toast('打补丁中…');
+  const r=await api('/api/patch-paywall',{method:'POST'});
+  if(r.status==='OK'){
+    toast(r.data?.already?'已是补丁版,无需重打':'补丁完成,已重启 Typeless');
+  }else{
+    toast(r.msg||'打补丁失败');
+  }
+  setTimeout(()=>{ detectCurrent(); }, 7000);
+}
+async function importMaster(){
+  if(!curDetail) return; toast('导入主词库中…');
+  const r=await api('/api/accounts/'+encodeURIComponent(curDetail.user_id)+'/import-master',{method:'POST'});
+  if(r.status==='OK') toast(`主词库 ${r.data.master} 条,新导入 ${r.data.imported} 条`);
+  else toast('失败: '+(r.msg||''));
+  await loadAccounts();
+}
+async function copyFrom(){
+  if(!curDetail) return;
+  const src=ACCOUNTS.find(x=>x.user_id!==curDetail.user_id);
+  if(!src) { toast('没有其他账号可复制'); return; }
+  const opts=ACCOUNTS.filter(x=>x.user_id!==curDetail.user_id).map(x=>x.nickname).join(', ');
+  const name=prompt('从哪个账号复制词库到「'+curDetail.nickname+'」?\n('+opts+')');
+  const srcAcc=ACCOUNTS.find(x=>x.nickname===name && x.user_id!==curDetail.user_id);
+  if(!srcAcc){ toast('已取消或未找到'); return; }
+  toast('复制中…');
+  const r=await api('/api/accounts/'+encodeURIComponent(curDetail.user_id)+'/copy-from/'+encodeURIComponent(srcAcc.user_id),{method:'POST'});
+  if(r.status==='OK') toast(`源 ${r.data.src_count} 条,新导入 ${r.data.imported} 条`);
+  else toast('失败: '+(r.msg||''));
+  await loadAccounts();
+}
+async function saveSnap(){
+  if(!curDetail) return;
+  const r=await api('/api/accounts/'+encodeURIComponent(curDetail.user_id)+'/snapshot',{method:'POST'});
+  toast(r.msg||'已保存'); await loadAccounts();
+}
+function rmAccount(){ if(!curDetail) return; if(!confirm('从管理器移除「'+curDetail.nickname+'」?(不影响 Typeless)')) return; fetch('/api/accounts/'+encodeURIComponent(curDetail.user_id),{method:'DELETE'}).then(()=>{closeModal('detailMask');loadAccounts();toast('已移除');}); }
+
+function addAccount(){ openModal('addMask'); document.getElementById('addStep1').style.display='block'; document.getElementById('addStep2').style.display='none'; }
+async function doCapture(){
+  const btn=document.getElementById('capBtn'); btn.disabled=true; btn.textContent='抓取中…(主窗口将重载)';
+  const r=await api('/api/capture',{method:'POST'});
+  btn.disabled=false; btn.textContent='抓取当前账号';
+  if(r.status!=='OK'){ toast('抓取失败: '+(r.msg||'')); return; }
+  const d=r.data; window._cap=d;
+  document.getElementById('addStep1').style.display='none';
+  document.getElementById('addStep2').style.display='block';
+  document.getElementById('addNick').value=d.nickname||d.email||'';
+  document.getElementById('addEmail').value=d.email||'';
+  document.getElementById('addMeta').value=(d.role||'')+' · '+d.user_id;
+  const exist=ACCOUNTS.find(x=>x.user_id===d.user_id);
+  document.getElementById('addExist').textContent=exist?'该账号已存在,保存将更新 token':'';
+}
+async function saveAccount(){
+  const d=window._cap; if(!d) return;
+  const r=await api('/api/accounts',{method:'POST',body:JSON.stringify({user_id:d.user_id,nickname:document.getElementById('addNick').value.trim(),email:d.email,role:d.role,token:d.token,captured_at:d.captured_at})});
+  if(r.status!=='OK'){ toast('保存失败'); return; }
+  closeModal('addMask'); toast('已保存,正在迁移主词库到此号…');
+  // 自动迁移:把主词库导入新账号
+  const m=await api('/api/accounts/'+encodeURIComponent(d.user_id)+'/import-master',{method:'POST'});
+  if(m.status==='OK') toast('添加完成,已导入 '+m.data.imported+' 个词');
+  await loadAccounts();
+}
+
+async function openMaster(){
+  const r=await api('/api/master');
+  document.getElementById('masterArea').value=(r.data||[]).join('\n');
+  document.getElementById('masterCnt').textContent=(r.data||[]).length+' 条';
+  openModal('masterMask');
+}
+async function saveMaster(){
+  const terms=document.getElementById('masterArea').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const r=await api('/api/master',{method:'POST',body:JSON.stringify({terms})});
+  if(r.status==='OK'){ document.getElementById('masterArea').value=r.data.join('\n'); document.getElementById('masterCnt').textContent=r.data.length+' 条'; toast('已保存'); }
+}
+
+async function detectCurrent(){
+  const el=document.getElementById('curLink'); el.textContent='检测中…';
+  const r=await api('/api/current');
+  if(r.status!=='OK'){ el.textContent='未连接 Typeless'; el.style.opacity='.55'; toast('Typeless 未连接,点「⏻ 启动 Typeless」即可(自动带端口)'); return; }
+  const d=r.data; CUR_ID=d.user_id;
+  const matched=ACCOUNTS.find(x=>x.user_id===d.user_id);
+  const b=document.getElementById('banner');
+  b.style.display='block'; b.textContent='当前 Typeless 登录: '+(matched?matched.nickname+' ('+matched.email+')':d.email||d.user_id)+(matched?'':'  — 未收录,点「添加当前账号」加入');
+  el.textContent=matched?('当前: '+matched.nickname):'检测当前登录账号';
+  render();
+}
+document.getElementById('curLink').onclick=detectCurrent;
+
+loadAccounts();
+detectCurrent();
+</script>
+</body>
+</html>

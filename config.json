@@ -1,0 +1,15 @@
+{
+  "typeless_exe": "",
+  "cdp_port": 9222,
+  "manager_port": 7788,
+  "api_base": "https://api.typeless.com",
+  "master_csv": "Typeless词库主清单.csv",
+  "paywall": {
+    "file_path": ["dist", "renderer", "static", "js", "2J71HyJ6.mjs"],
+    "replacements": [
+      ["gn(_0x1c3e62)", "(0,_0x1c3e62)"],
+      ["gn(_0x2d6844)", "(0,_0x2d6844)"]
+    ],
+    "auto_detect_file": true
+  }
+}
