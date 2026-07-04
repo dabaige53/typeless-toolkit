@@ -138,3 +138,7 @@ MIT,见 [LICENSE](LICENSE)。
 ## 参考项目
 
 - [estarpro1022/typeless-reset-device](https://github.com/estarpro1022/typeless-reset-device) —— 本项目的「解除设备登录限制」功能参考了该项目重置 Typeless 设备 ID 的思路(清理设备标识凭据以重新注册新账号)。
+
+## 致谢 / Thanks
+
+感谢 [LINUX DO 论坛社区](https://linux.do/) 的关注、反馈与支持。
