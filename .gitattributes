@@ -1,0 +1,6 @@
+# Shell 脚本强制 LF 换行:CRLF 会让 macOS/Linux 的 shebang 带 \r 报 "bad interpreter"
+*.command text eol=lf
+*.sh      text eol=lf
+
+# Windows 批处理保持 CRLF
+*.bat     text eol=crlf
