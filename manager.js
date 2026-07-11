@@ -65,9 +65,10 @@ const server = http.createServer(async (req, res) => {
       const data = accs.map((a, i) => ({ ...a, live: live[i], has_snapshot: hasSnapshot(a.user_id) }));
       return send(res, 200, { status: 'OK', data });
     }
-    // 当前登录账号探测(不保存,不重启 Typeless:autoRestart=false,端口不通就报未连接)
+    // 当前登录账号探测;connect=1 仅用于用户主动点击连接,允许重启并打开调试端口
     if (m === 'GET' && p === '/api/current') {
-      try { const c = await captureTokenCDP(null, false); return send(res, 200, { status: 'OK', data: c }); }
+      const autoConnect = u.searchParams.get('connect') === '1';
+      try { const c = await captureTokenCDP(null, autoConnect); return send(res, 200, { status: 'OK', data: c }); }
       catch (e) { return send(res, 200, { status: 'FAIL', msg: e.message }); }
     }
     // 抓取当前账号(准备添加)
