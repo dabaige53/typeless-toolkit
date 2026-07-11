@@ -129,30 +129,30 @@ A: **Windows 与 macOS 都支持**(平台差异集中在 `lib/platform.js`)。Li
 ## macOS 适配
 
 平台相关差异(进程、路径、凭据、原始文件复制、重签名)全部封装在 `lib/platform.js`,
-Windows 与 macOS 各一套实现。macOS 上:
+Windows 与 macOS 各一套实现。macOS 路径按平台固定(不混用 Windows 的 `.exe` 命名)。
 
 - **启动**:用 `启动管理器.command` / `启动Typeless(带调试端口).command` / `同步词库.command`
   (首次需在终端执行 `chmod +x *.command` 赋可执行权限;或右键→打开)。
-- **进程 / 路径 / 凭据**(合理默认,可在 `config.json` 覆盖):
+- **连接**:从 Dock / Finder 启动的 Typeless 不会带调试端口。管理器在 macOS 上会 soft 重连
+  (检测到进程在跑但 CDP 不通时,自动以 `--remote-debugging-port` 重启再抓 token)。
+- **进程 / 路径 / 凭据**(Typeless 2.0 实测默认,可在 `config.json` 覆盖):
 
   | 项 | macOS 默认 | config 覆盖字段 |
   | --- | --- | --- |
   | 可执行文件 | `/Applications/Typeless.app/Contents/MacOS/Typeless` | `typeless_exe` |
-  | 登录态目录 | `~/Library/Application Support/Typeless.exe`(不存在则 `.../Typeless`) | `userdata_dir` |
-  | 设备缓存 | `~/Library/Application Support/Typeless/Cache` | `device_cache_dir` |
-  | 设备 ID 凭据 | Keychain 通用密码 `Typeless.deviceIdentifier` | `credential_target` |
+  | 登录态目录 | `~/Library/Application Support/Typeless` | `userdata_dir` |
+  | 设备缓存 | `~/Library/Application Support/now.typeless.desktop` | `device_cache_dir` |
+  | 设备 ID 凭据 | Keychain 通用密码 `now.typeless.desktop.deviceIdentifier` | `credential_target` |
 
 - **去弹窗补丁(实验性)**:改 Mach-O 可执行文件后会破坏代码签名,补丁流程会自动执行
   `codesign --force --deep --sign -` 做 ad-hoc 重签名并移除隔离属性;若自动重签名失败,
-  需手动执行 `codesign --force --deep --sign - /Applications/Typeless.app`。**此功能未在真实
-  Mac 上验证**,首次使用请先手动备份 `.app`。
+  需手动执行 `codesign --force --deep --sign - /Applications/Typeless.app`。首次使用请先手动备份 `.app`。
 
 - **排错**:管理器顶栏会显示当前平台徽章;若显示「⚠ 未找到 Typeless」,访问
   `http://127.0.0.1:7788/api/env` 查看探测到的各路径,按上表在 `config.json` 里改正。
 
-> ⚠️ **给 macOS 用户的说明**:本工具的 macOS 分支基于 Electron/macOS 惯例编写,作者在
-> Windows 环境开发、**未在真实 Mac 上实测**。上表的数据目录名、Keychain 条目名、asar 内混淆
-> 变量若与你的版本不符,请对照 `/api/env` 输出与「各版本弹窗补丁适配」章节自行校正 `config.json`。
+> 以上路径基于 Typeless 2.0.0(Bundle ID `now.typeless.desktop`)在真实 Mac 上实测。
+> 若你的版本目录名或 Keychain 条目不同,请对照 `/api/env` 与「各版本弹窗补丁适配」章节校正 `config.json`。
 
 ## 免责声明
 
