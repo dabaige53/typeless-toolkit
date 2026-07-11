@@ -256,4 +256,29 @@ const server = http.createServer(async (req, res) => {
   } catch (e) { send(res, 500, { status: 'FAIL', msg: e.message }); }
 });
 
-server.listen(PORT, '127.0.0.1', () => { log('[mgr] 管理器运行于 http://127.0.0.1:' + PORT); });
+function startServer() {
+  if (server.listening) return Promise.resolve(server);
+  return new Promise((resolve, reject) => {
+    const onError = (error) => {
+      server.off('listening', onListening);
+      reject(error);
+    };
+    const onListening = () => {
+      server.off('error', onError);
+      log('[mgr] 管理器运行于 http://127.0.0.1:' + PORT);
+      resolve(server);
+    };
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(PORT, '127.0.0.1');
+  });
+}
+
+if (require.main === module) {
+  startServer().catch(error => {
+    console.error('[mgr] 启动失败:', error.message);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { server, startServer, PORT };
