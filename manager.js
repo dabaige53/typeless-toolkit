@@ -61,7 +61,17 @@ const server = http.createServer(async (req, res) => {
     // 账号列表(含实时状态)
     if (m === 'GET' && p === '/api/accounts') {
       const accs = readAccounts();
-      const live = await Promise.all(accs.map(a => liveStatus(a).catch(e => ({ token_valid: false, _err: e.message }))));
+      // 限流:并发池避免账号多时一次 spawn 大量 curl(每账号 liveStatus 内部 4 个 curl)
+      const CONCURRENCY = 3;
+      const live = new Array(accs.length);
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < accs.length) {
+          const i = cursor++;
+          live[i] = await liveStatus(accs[i]).catch(e => ({ token_valid: false, _err: e.message }));
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, accs.length) }, () => worker()));
       const data = accs.map((a, i) => ({ ...a, live: live[i], has_snapshot: hasSnapshot(a.user_id) }));
       return send(res, 200, { status: 'OK', data });
     }
