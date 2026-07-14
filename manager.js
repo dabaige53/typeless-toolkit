@@ -12,6 +12,7 @@ const path = require('path');
 const { execSync, spawn } = require('child_process');
 
 const C = require('./lib/common');
+const { installOfficialUpdate, officialUpdateStatus } = require('./lib/official-update');
 const {
   config, ROOT, TYPELESS_EXE, CDP_PORT, ASAR_PATH,
   readAccounts, writeAccounts, readCurrentUser,
@@ -26,6 +27,7 @@ const {
 } = C;
 
 const PORT = config.manager_port;
+const TYPELESS_APP = TYPELESS_EXE ? String(TYPELESS_EXE).split('/Contents/')[0] : '';
 
 // ---------- HTTP ----------
 function send(res, code, obj) {
@@ -115,6 +117,15 @@ const server = http.createServer(async (req, res) => {
     // 查询去弹窗补丁状态(只读)
     if (m === 'GET' && p === '/api/paywall-status') {
       return send(res, 200, { status: 'OK', data: paywallStatus() });
+    }
+    // 查询 Typeless 官方 updater 已下载的更新包
+    if (m === 'GET' && p === '/api/official-update') {
+      return send(res, 200, { status: 'OK', data: officialUpdateStatus({ typelessAppPath: TYPELESS_APP }) });
+    }
+    // 校验并安装官方更新包,恢复官方签名;当前应用先移到工具集数据目录备份
+    if (m === 'POST' && p === '/api/official-update/install') {
+      const result = await installOfficialUpdate({ typelessAppPath: TYPELESS_APP, dataRoot: ROOT });
+      return send(res, 200, { status: 'OK', data: result, msg: result.msg });
     }
     // 解除升级弹窗(打 asar+exe 两层补丁,失败自动从备份还原)
     if (m === 'POST' && p === '/api/patch-paywall') {
