@@ -490,10 +490,12 @@ async function installOfficialUpdate(){
   if(!d.available){ toast(d.reason||'当前没有可安装的官方更新','err'); return; }
   if(!confirm(`安装 Typeless 官方 ${d.pending.version}?\n\n将校验官方更新包与开发者签名,完整备份当前 Typeless.app 后再替换并重启。\n升级会清除当前弹窗补丁并恢复官方签名。`)) return;
   btn.disabled=true; btn.textContent='正在校验并安装…';
-  const r=await api('/api/official-update/install',{method:'POST'});
-  if(r.status==='OK'){ toast(r.msg||'官方升级完成','ok'); setTimeout(()=>{ refreshOfficialUpdate(); refreshPatchStatus(); detectCurrent(); },3000); }
-  else toast(r.msg||'官方升级失败','err');
-  btn.disabled=false;
+  try {
+    const r=await api('/api/official-update/install',{method:'POST'});
+    if(r.status==='OK'){ toast(r.msg||'官方升级完成','ok'); setTimeout(()=>{ refreshOfficialUpdate(); refreshPatchStatus(); detectCurrent(); },3000); }
+    else toast(r.msg||'官方升级失败','err');
+  } catch(e) { toast('官方升级请求失败:'+e.message,'err'); }
+  finally { btn.disabled=false; refreshOfficialUpdate(); }
 }
 async function backup(){
   toast('备份中…');

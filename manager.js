@@ -29,6 +29,11 @@ const {
 const PORT = config.manager_port;
 const TYPELESS_APP = TYPELESS_EXE ? String(TYPELESS_EXE).split('/Contents/')[0] : '';
 
+function isTrustedLocalOrigin(req) {
+  const origin = req.headers.origin;
+  return !origin || origin === `http://127.0.0.1:${PORT}` || origin === `http://localhost:${PORT}`;
+}
+
 // ---------- HTTP ----------
 function send(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
@@ -124,6 +129,7 @@ const server = http.createServer(async (req, res) => {
     }
     // 校验并安装官方更新包,恢复官方签名;当前应用先移到工具集数据目录备份
     if (m === 'POST' && p === '/api/official-update/install') {
+      if (!isTrustedLocalOrigin(req)) return send(res, 403, { status: 'FAIL', msg: '拒绝来自外部网页的升级请求' });
       const result = await installOfficialUpdate({ typelessAppPath: TYPELESS_APP, dataRoot: ROOT });
       return send(res, 200, { status: 'OK', data: result, msg: result.msg });
     }

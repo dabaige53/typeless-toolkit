@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 process.env.TYPELESS_EXE = '/path/that/does/not/exist';
-const { currentUserFromStorage, resolvePaywallReplacements } = require('../lib/common');
+const { currentUserFromStorage, locatePaywallTarget, resolvePaywallReplacements } = require('../lib/common');
 
 test('reads the current account from local Typeless storage without CDP', () => {
   assert.deepEqual(currentUserFromStorage({ userData: { user_id: 'user-1', email: 'user@example.com' } }), {
@@ -52,4 +52,19 @@ test('rejects handler shapes that cannot preserve byte length', () => {
     () => resolvePaywallReplacements(source),
     /无法推导两个等长替换标记/,
   );
+});
+
+test('prefers handler definitions over a message dispatcher with the same keywords', () => {
+  const dispatcher = "if(payload['paywall'])this['handlers']['onSessionInterrupt'](payload);else this['handlers']['onImportantNotification'](payload);";
+  const handler = [
+    "'onImportantNotification':notice=>{if(notice['type']==='paywall')mn(notice);}",
+    "'onSessionInterrupt':(event,retry)=>{if(event['type']==='paywall')mn(event);}",
+  ].join(',');
+  const header = { files: {
+    'dispatcher.js': { offset: '0', size: Buffer.byteLength(dispatcher) },
+    'handler.mjs': { offset: String(Buffer.byteLength(dispatcher)), size: Buffer.byteLength(handler) },
+  } };
+
+  const target = locatePaywallTarget(header, Buffer.from(dispatcher + handler), 0);
+  assert.equal(target.filePath.join('/'), 'handler.mjs');
 });
